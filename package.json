@@ -1,0 +1,13 @@
+{
+  "name": "grupofinanzas",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/mobile"
+  ],
+  "scripts": {
+    "api": "npm run dev --workspace=apps/api",
+    "mobile": "npm run start --workspace=apps/mobile"
+  }
+}

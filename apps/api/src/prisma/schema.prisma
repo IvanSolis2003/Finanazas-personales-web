@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  pushToken    String?
+  createdAt    DateTime @default(now())
+
+  memberships   GroupMember[]
+  expensesPaid  Expense[]
+  proposalsMade Proposal[]
+  votes         ProposalVote[]
+}
+
+model Group {
+  id                String       @id @default(cuid())
+  name              String
+  inviteCode        String       @unique
+  approvalMode      ApprovalMode @default(MAJORITY)
+  personalThreshold Int          @default(50000)
+  createdAt         DateTime     @default(now())
+
+  members   GroupMember[]
+  expenses  Expense[]
+  proposals Proposal[]
+  budgets   Budget[]
+  goals     SavingGoal[]
+  alerts    Alert[]
+}
+
+model GroupMember {
+  id            String     @id @default(cuid())
+  userId        String
+  groupId       String
+  monthlySalary Int        @default(0)
+  salaryVisible Boolean    @default(true)
+  role          MemberRole @default(MEMBER)
+  joinedAt      DateTime   @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model Expense {
+  id           String          @id @default(cuid())
+  groupId      String
+  paidById     String
+  description  String
+  amount       Int
+  category     ExpenseCategory
+  type         ExpenseType
+  splitBetween String[]
+  date         DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+
+  group  Group @relation(fields: [groupId], references: [id])
+  paidBy User  @relation(fields: [paidById], references: [id])
+}
+
+model Proposal {
+  id           String          @id @default(cuid())
+  groupId      String
+  proposedById String
+  title        String
+  description  String?
+  amount       Int
+  category     ExpenseCategory
+  isPersonal   Boolean         @default(false)
+  status       ProposalStatus  @default(PENDING)
+  createdAt    DateTime        @default(now())
+  resolvedAt   DateTime?
+
+  group      Group          @relation(fields: [groupId], references: [id])
+  proposedBy User           @relation(fields: [proposedById], references: [id])
+  votes      ProposalVote[]
+}
+
+model ProposalVote {
+  id         String   @id @default(cuid())
+  proposalId String
+  userId     String
+  vote       VoteType
+  createdAt  DateTime @default(now())
+
+  proposal Proposal @relation(fields: [proposalId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([proposalId, userId])
+}
+
+model Budget {
+  id           String          @id @default(cuid())
+  groupId      String
+  category     ExpenseCategory
+  monthlyLimit Int
+  month        Int
+  year         Int
+
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([groupId, category, month, year])
+}
+
+model SavingGoal {
+  id           String   @id @default(cuid())
+  groupId      String
+  name         String
+  targetAmount Int
+  savedAmount  Int      @default(0)
+  targetDate   DateTime
+  createdAt    DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+}
+
+model Alert {
+  id        String    @id @default(cuid())
+  groupId   String
+  type      AlertType
+  message   String
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+}
+
+// Enums
+enum MemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum ApprovalMode {
+  MAJORITY
+  UNANIMOUS
+}
+
+enum ExpenseType {
+  SHARED
+  INDIVIDUAL
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  POSTPONED
+}
+
+enum VoteType {
+  APPROVE
+  REJECT
+  POSTPONE
+}
+
+enum AlertType {
+  BUDGET_WARNING
+  BUDGET_EXCEEDED
+  SPENDING_INCREASE
+  SPENDING_DECREASE
+  LOW_BALANCE
+  PROPOSAL_PENDING
+  GOAL_AT_RISK
+  GOAL_ACHIEVED
+}
+
+enum ExpenseCategory {
+  HOUSING
+  FOOD
+  TRANSPORT
+  HEALTH
+  RECREATION
+  CLOTHING
+  EDUCATION
+  SERVICES
+  OTHER
+}

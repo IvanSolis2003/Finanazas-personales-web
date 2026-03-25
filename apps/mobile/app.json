@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "GrupoFinanzas",
+    "slug": "grupofinanzas",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1976D2"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.grupofinanzas.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1976D2"
+      },
+      "package": "com.grupofinanzas.app"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1976D2"
+        }
+      ]
+    ],
+    "scheme": "grupofinanzas",
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
