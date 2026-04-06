@@ -31,14 +31,7 @@
           "color": "#1976D2"
         }
       ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "gradleVersion": "8.8.0"
-          }
-        }
-      ]
+      "./plugins/fix-gradle-wrapper"
     ],
     "scheme": "grupofinanzas",
     "extra": {
