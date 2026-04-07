@@ -1,20 +1,15 @@
 #!/bin/bash
 set -e
 
-echo "=== Fixing Gradle version ==="
-pwd
-ls -la
+echo "=== Patching Gradle wrapper templates to 8.8 ==="
 
-WRAPPER_PROPS="android/gradle/wrapper/gradle-wrapper.properties"
+# Find all gradle-wrapper.properties in node_modules templates and patch them
+find node_modules -name "gradle-wrapper.properties" 2>/dev/null | while read f; do
+  if grep -q "distributionUrl" "$f"; then
+    echo "Patching: $f"
+    perl -pi -e 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.8-bin.zip|' "$f"
+    echo "  -> $(grep distributionUrl "$f")"
+  fi
+done
 
-if [ -f "$WRAPPER_PROPS" ]; then
-  echo "Found: $WRAPPER_PROPS"
-  cat "$WRAPPER_PROPS"
-  # Use perl instead of sed for cross-platform compatibility
-  perl -pi -e 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.8-bin.zip|' "$WRAPPER_PROPS"
-  echo "--- After fix ---"
-  cat "$WRAPPER_PROPS"
-else
-  echo "NOT FOUND: $WRAPPER_PROPS"
-  find . -name "gradle-wrapper.properties" 2>/dev/null
-fi
+echo "=== Done ==="
