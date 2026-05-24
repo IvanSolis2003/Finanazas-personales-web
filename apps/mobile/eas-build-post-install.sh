@@ -4,7 +4,7 @@ set -e
 echo "=== Fixing Gradle wrapper to 8.8 ==="
 echo "CWD: $(pwd)"
 
-GRADLE_VERSION="8.8"
+GRADLE_VERSION="8.11.1"
 DIST_URL="distributionUrl=https\\://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
 
 patch_file() {

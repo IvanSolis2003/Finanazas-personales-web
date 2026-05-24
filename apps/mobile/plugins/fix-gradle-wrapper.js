@@ -14,7 +14,7 @@ module.exports = function fixGradleWrapper(config) {
         const content = fs.readFileSync(wrapperPath, 'utf8');
         const fixed = content.replace(
           /distributionUrl=.*gradle-.*\.zip/,
-          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.8-bin.zip'
+          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-bin.zip'
         );
         fs.writeFileSync(wrapperPath, fixed);
         console.log('✓ Gradle wrapper fixed to 8.8');
