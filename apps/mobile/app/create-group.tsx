@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
+import { Text, TextInput, HelperText, Button, SegmentedButtons } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { api } from '../services/api';
 import { useGroupStore } from '../store/groupStore';
@@ -60,8 +60,8 @@ export default function CreateGroupScreen() {
         onChangeText={setThreshold}
         keyboardType="numeric"
         style={styles.input}
-        helperText="Montos bajo este valor se consideran gastos personales"
       />
+      <HelperText type="info">Montos bajo este valor se consideran gastos personales</HelperText>
 
       <Button mode="contained" onPress={handleCreate} loading={loading} style={styles.btn}>
         Crear grupo

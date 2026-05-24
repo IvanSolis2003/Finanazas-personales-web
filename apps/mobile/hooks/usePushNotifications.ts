@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -21,15 +23,15 @@ export function usePushNotifications() {
 async function registerForPushNotifications() {
   if (!Device.isDevice) return;
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  const existing = await Notifications.getPermissionsAsync();
+  let isGranted = (existing as unknown as { granted: boolean }).granted;
 
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
+  if (!isGranted) {
+    const requested = await Notifications.requestPermissionsAsync();
+    isGranted = (requested as unknown as { granted: boolean }).granted;
   }
 
-  if (finalStatus !== 'granted') return;
+  if (!isGranted) return;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {

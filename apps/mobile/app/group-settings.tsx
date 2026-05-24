@@ -35,7 +35,7 @@ export default function GroupSettingsScreen() {
 
   const updateGroup = useMutation({
     mutationFn: (data: { name?: string; approvalMode?: string; personalThreshold?: number }) =>
-      api.patch(`/groups/${groupId}`, data),
+      api.patch<{ id: string; name: string; inviteCode: string; approvalMode: 'MAJORITY' | 'UNANIMOUS'; personalThreshold: number }>(`/groups/${groupId}`, data),
     onSuccess: (updated: { id: string; name: string; inviteCode: string; approvalMode: 'MAJORITY' | 'UNANIMOUS'; personalThreshold: number }) => {
       setCurrentGroup(updated);
       queryClient.invalidateQueries({ queryKey: ['group', groupId] });
