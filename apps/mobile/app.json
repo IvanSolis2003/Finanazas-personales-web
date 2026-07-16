@@ -41,8 +41,7 @@
             "kotlinVersion": "2.0.21"
           }
         }
-      ],
-      "./plugins/fix-gradle-wrapper"
+      ]
     ],
     "scheme": "grupofinanzas",
     "extra": {
