@@ -1,3 +1,7 @@
+if (!Array.prototype.toReversed) {
+  Array.prototype.toReversed = function () { return [...this].reverse(); };
+}
+
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
