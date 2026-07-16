@@ -9,5 +9,10 @@
   "scripts": {
     "api": "npm run dev --workspace=apps/api",
     "mobile": "npm run start --workspace=apps/mobile"
+  },
+  "overrides": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native-gesture-handler": "~2.30.0"
   }
 }
