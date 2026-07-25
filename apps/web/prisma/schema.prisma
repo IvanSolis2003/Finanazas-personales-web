@@ -4,7 +4,10 @@
 // Si cambias este schema, mantén sincronizado apps/api/src/prisma/schema.prisma.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" para desarrollo local; el target de Vercel (Amazon Linux 2023,
+  // OpenSSL 3.0) evita el error "query engine binary not found" en producción.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
