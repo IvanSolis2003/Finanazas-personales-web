@@ -11,3 +11,4 @@ dist/
 apps/web/.next/
 apps/web/.env.local
 apps/web/next-env.d.ts
+*.tsbuildinfo
