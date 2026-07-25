@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, Typography, TextField, Button, Stack, Alert } from '@mui/material';
+import { Card, CardContent, Typography, TextField, Button, Stack, Alert, Box } from '@mui/material';
 import { useLogin } from '@/hooks/useAuth';
 
 export default function LoginPage() {
@@ -18,11 +18,14 @@ export default function LoginPage() {
   return (
     <Card elevation={3}>
       <CardContent sx={{ p: 4 }}>
-        <Typography variant="h4" align="center" fontWeight="bold" color="primary" gutterBottom>
-          Iasmtech Finanzas
-        </Typography>
+        <Box
+          component="img"
+          src="/logo-iasmtech.svg"
+          alt="Iasmtech"
+          sx={{ display: 'block', width: '100%', maxWidth: 260, height: 'auto', mx: 'auto', mb: 1 }}
+        />
         <Typography variant="body1" align="center" color="text.secondary" mb={3}>
-          Inicia sesión
+          Finanzas · Inicia sesión
         </Typography>
 
         <form onSubmit={handleSubmit}>

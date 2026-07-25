@@ -56,6 +56,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" elevation={1}>
         <Toolbar>
+          <Box
+            component="img"
+            src="/logo-mark-white.svg"
+            alt="Iasmtech"
+            sx={{ height: 34, width: 34, mr: 1.5 }}
+          />
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h6" fontWeight="bold" lineHeight={1.1}>
               {currentGroup.name}
