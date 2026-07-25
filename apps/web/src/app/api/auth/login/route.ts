@@ -17,6 +17,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
   }
 
+  // La cuenta debe estar habilitada por el administrador.
+  if (!user.isApproved) {
+    return NextResponse.json(
+      { error: 'Tu cuenta está pendiente de aprobación por el administrador.' },
+      { status: 403 },
+    );
+  }
+
   await setSessionCookie(await signSession(user.id));
-  return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email } });
+  return NextResponse.json({
+    user: { id: user.id, name: user.name, email: user.email, isAdmin: user.isAdmin },
+  });
 }

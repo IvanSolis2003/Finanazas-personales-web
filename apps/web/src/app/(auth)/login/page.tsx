@@ -19,7 +19,7 @@ export default function LoginPage() {
     <Card elevation={3}>
       <CardContent sx={{ p: 4 }}>
         <Typography variant="h4" align="center" fontWeight="bold" color="primary" gutterBottom>
-          GrupoFinanzas
+          Iasmtech Finanzas
         </Typography>
         <Typography variant="body1" align="center" color="text.secondary" mb={3}>
           Inicia sesión

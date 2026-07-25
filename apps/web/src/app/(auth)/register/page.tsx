@@ -23,9 +23,17 @@ export default function RegisterPage() {
           Crear cuenta
         </Typography>
         <Typography variant="body1" align="center" color="text.secondary" mb={3}>
-          Únete a GrupoFinanzas
+          Únete a Iasmtech Finanzas
         </Typography>
 
+        {register.isSuccess ? (
+          <Stack spacing={2}>
+            <Alert severity="success">{register.data.message}</Alert>
+            <Button component={Link} href="/login" variant="contained">
+              Ir a iniciar sesión
+            </Button>
+          </Stack>
+        ) : (
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             {register.isError && <Alert severity="error">{register.error.message}</Alert>}
@@ -70,6 +78,7 @@ export default function RegisterPage() {
             </Button>
           </Stack>
         </form>
+        )}
       </CardContent>
     </Card>
   );

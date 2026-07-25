@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useGroupStore } from '@/store/groupStore';
-import { useLogout } from '@/hooks/useAuth';
+import { useLogout, useMe } from '@/hooks/useAuth';
 
 const TABS = [
   { label: 'Inicio', href: '/dashboard' },
@@ -31,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const currentGroup = useGroupStore((s) => s.currentGroup);
   const logout = useLogout();
+  const { data: me } = useMe();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -82,6 +83,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <MenuItem onClick={() => { setAnchor(null); router.push('/select-group'); }}>
               Cambiar de grupo
             </MenuItem>
+            {me?.isAdmin && (
+              <MenuItem onClick={() => { setAnchor(null); router.push('/users'); }} sx={{ color: 'primary.main' }}>
+                Administrar usuarios
+              </MenuItem>
+            )}
             <MenuItem onClick={() => { setAnchor(null); logout.mutate(); }} sx={{ color: 'error.main' }}>
               Cerrar sesión
             </MenuItem>

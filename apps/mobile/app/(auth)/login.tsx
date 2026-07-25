@@ -28,7 +28,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>GrupoFinanzas</Text>
+      <Text variant="headlineMedium" style={styles.title}>Iasmtech Finanzas</Text>
       <Text variant="bodyLarge" style={styles.subtitle}>Inicia sesión</Text>
 
       <TextInput

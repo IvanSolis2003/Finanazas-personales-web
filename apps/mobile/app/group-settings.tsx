@@ -50,7 +50,7 @@ export default function GroupSettingsScreen() {
 
   async function handleShare() {
     await Share.share({
-      message: `Únete a nuestro grupo en GrupoFinanzas con el código: ${currentGroup?.inviteCode}`,
+      message: `Únete a nuestro grupo en Iasmtech Finanzas con el código: ${currentGroup?.inviteCode}`,
     });
   }
 

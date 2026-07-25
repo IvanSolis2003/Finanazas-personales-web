@@ -8,6 +8,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  isAdmin?: boolean;
 }
 
 /** Usuario actual según la cookie de sesión (endpoint /api/auth/me). */
@@ -34,15 +35,10 @@ export function useLogin() {
 }
 
 export function useRegister() {
-  const qc = useQueryClient();
-  const router = useRouter();
+  // El registro deja la cuenta PENDIENTE de aprobación: no inicia sesión.
   return useMutation({
     mutationFn: (data: { name: string; email: string; password: string }) =>
-      apiClient.post<{ user: AuthUser }>('/auth/register', data),
-    onSuccess: (res) => {
-      qc.setQueryData(['me'], res.user);
-      router.replace('/dashboard');
-    },
+      apiClient.post<{ pending: boolean; message: string }>('/auth/register', data),
   });
 }
 

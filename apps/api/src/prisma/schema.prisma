@@ -16,6 +16,8 @@ model User {
   email        String   @unique
   passwordHash String
   pushToken    String?
+  isAdmin      Boolean  @default(false) // admin de la app (gestiona usuarios en la web)
+  isApproved   Boolean  @default(false) // el admin debe habilitar la cuenta
   createdAt    DateTime @default(now())
 
   memberships   GroupMember[]

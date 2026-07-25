@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword, signSession, setSessionCookie } from '@/lib/auth';
+import { hashPassword } from '@/lib/auth';
 import { registerSchema } from '@/lib/validations';
 
 export async function POST(req: Request) {
@@ -18,11 +18,19 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
+  // La cuenta se crea PENDIENTE (isApproved = false por defecto): no se inicia
+  // sesión hasta que el administrador la habilite.
+  await prisma.user.create({
     data: { name, email, passwordHash },
-    select: { id: true, name: true, email: true },
+    select: { id: true },
   });
 
-  await setSessionCookie(await signSession(user.id));
-  return NextResponse.json({ user }, { status: 201 });
+  return NextResponse.json(
+    {
+      pending: true,
+      message:
+        'Cuenta creada. Un administrador debe habilitarla antes de que puedas ingresar.',
+    },
+    { status: 201 },
+  );
 }

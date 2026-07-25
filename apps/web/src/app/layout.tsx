@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'GrupoFinanzas',
+  title: 'Iasmtech Finanzas',
   description: 'Control de gastos compartidos para parejas y grupos',
 };
 
