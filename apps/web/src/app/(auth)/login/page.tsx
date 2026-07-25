@@ -20,9 +20,17 @@ export default function LoginPage() {
       <CardContent sx={{ p: 4 }}>
         <Box
           component="img"
-          src="/logo-iasmtech.svg"
+          src="/logo1.png"
           alt="Iasmtech"
-          sx={{ display: 'block', width: '100%', maxWidth: 260, height: 'auto', mx: 'auto', mb: 1 }}
+          sx={{
+            display: 'block',
+            width: '100%',
+            maxWidth: 300,
+            height: 'auto',
+            mx: 'auto',
+            mb: 2,
+            borderRadius: 2,
+          }}
         />
         <Typography variant="body1" align="center" color="text.secondary" mb={3}>
           Finanzas · Inicia sesión
