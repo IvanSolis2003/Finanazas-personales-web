@@ -149,6 +149,28 @@ export interface MemberBreakdown {
   remaining: number | null;
 }
 
+export interface MonthMetric {
+  month: number;
+  year: number;
+  key: string;
+  label: string;
+  income: number;
+  expenses: number;
+  available: number;
+  byCategory: Record<string, number>;
+}
+
+export function useMetrics(groupId: string, months = 6) {
+  return useQuery({
+    queryKey: ['metrics', groupId, months],
+    queryFn: () =>
+      apiClient.get<{ income: number; series: MonthMetric[] }>(
+        `/groups/${groupId}/metrics?months=${months}`,
+      ),
+    enabled: !!groupId,
+  });
+}
+
 export function useMembersBreakdown(groupId: string, month?: number, year?: number) {
   const params = new URLSearchParams();
   if (month) params.set('month', String(month));

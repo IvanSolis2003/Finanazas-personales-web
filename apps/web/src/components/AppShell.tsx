@@ -77,6 +77,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <MenuItem onClick={() => { setAnchor(null); router.push('/balance'); }}>
               Balance entre miembros
             </MenuItem>
+            <MenuItem onClick={() => { setAnchor(null); router.push('/metrics'); }}>
+              Métricas por mes
+            </MenuItem>
             <MenuItem onClick={() => { setAnchor(null); router.push('/budgets'); }}>
               Presupuestos
             </MenuItem>

@@ -133,17 +133,27 @@ function ExpenseDialog({
   members: { userId: string; name: string }[];
 }) {
   const isEdit = !!expense;
+  const { month: selMonth, year: selYear } = useMonthStore();
   const createExpense = useCreateExpense(groupId);
   const updateExpense = useUpdateExpense(groupId);
   const mutation = isEdit ? updateExpense : createExpense;
+
+  // Formato yyyy-mm-dd en hora local (evita corrimientos de zona horaria).
+  const toInput = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const defaultDate = () => {
+    if (expense) return toInput(new Date(expense.date));
+    const now = new Date();
+    // Si estás viendo el mes actual → hoy; si ves otro mes → día 1 de ese mes.
+    if (selMonth === now.getMonth() + 1 && selYear === now.getFullYear()) return toInput(now);
+    return toInput(new Date(selYear, selMonth - 1, 1));
+  };
 
   const [description, setDescription] = useState(expense?.description ?? '');
   const [amount, setAmount] = useState(expense ? String(expense.amount) : '');
   const [category, setCategory] = useState<string>(expense?.category ?? 'FOOD');
   const [type, setType] = useState<'SHARED' | 'INDIVIDUAL'>(expense?.type ?? 'SHARED');
-  const [date, setDate] = useState(
-    (expense ? new Date(expense.date) : new Date()).toISOString().slice(0, 10),
-  );
+  const [date, setDate] = useState(defaultDate);
   const [split, setSplit] = useState<string[]>(
     expense && expense.type === 'SHARED' ? expense.splitBetween : members.map((m) => m.userId),
   );
@@ -161,7 +171,9 @@ function ExpenseDialog({
       category,
       type,
       splitBetween: type === 'SHARED' ? split : [],
-      date: date ? new Date(date).toISOString() : undefined,
+      // Mediodía UTC: cae siempre dentro del día elegido sin importar la zona
+      // horaria del servidor (evita que un gasto "salte" de mes por el huso).
+      date: date ? `${date}T12:00:00.000Z` : undefined,
     };
     if (isEdit) {
       updateExpense.mutate({ expId: expense.id, data }, { onSuccess: onClose });
