@@ -55,10 +55,15 @@ export interface BalanceResult {
   transactions: { from: string; fromId: string; to: string; toId: string; amount: number }[];
 }
 
-export function useSummary(groupId: string) {
+export function useSummary(groupId: string, month?: number, year?: number) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', String(month));
+  if (year) params.set('year', String(year));
+  const qs = params.toString() ? `?${params}` : '';
+
   return useQuery({
-    queryKey: ['summary', groupId],
-    queryFn: () => apiClient.get<Summary>(`/groups/${groupId}/summary`),
+    queryKey: ['summary', groupId, month, year],
+    queryFn: () => apiClient.get<Summary>(`/groups/${groupId}/summary${qs}`),
     enabled: !!groupId,
   });
 }
@@ -92,6 +97,7 @@ export function useCreateExpense(groupId: string) {
       qc.invalidateQueries({ queryKey: ['expenses', groupId] });
       qc.invalidateQueries({ queryKey: ['summary', groupId] });
       qc.invalidateQueries({ queryKey: ['balance', groupId] });
+      qc.invalidateQueries({ queryKey: ['members-breakdown', groupId] });
     },
   });
 }
@@ -104,6 +110,7 @@ export function useDeleteExpense(groupId: string) {
       qc.invalidateQueries({ queryKey: ['expenses', groupId] });
       qc.invalidateQueries({ queryKey: ['summary', groupId] });
       qc.invalidateQueries({ queryKey: ['balance', groupId] });
+      qc.invalidateQueries({ queryKey: ['members-breakdown', groupId] });
     },
   });
 }
@@ -112,6 +119,31 @@ export function useBalance(groupId: string) {
   return useQuery({
     queryKey: ['balance', groupId],
     queryFn: () => apiClient.get<BalanceResult>(`/groups/${groupId}/balance`),
+    enabled: !!groupId,
+  });
+}
+
+export interface MemberBreakdown {
+  userId: string;
+  name: string;
+  isSelf: boolean;
+  incomeVisible: boolean;
+  income: number | null;
+  spent: number;
+  byCategory: Record<string, number>;
+  over: boolean;
+  remaining: number | null;
+}
+
+export function useMembersBreakdown(groupId: string, month?: number, year?: number) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', String(month));
+  if (year) params.set('year', String(year));
+  const qs = params.toString() ? `?${params}` : '';
+
+  return useQuery({
+    queryKey: ['members-breakdown', groupId, month, year],
+    queryFn: () => apiClient.get<MemberBreakdown[]>(`/groups/${groupId}/members-breakdown${qs}`),
     enabled: !!groupId,
   });
 }

@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireUser, requireMembership } from '@/lib/apiAuth';
 
-// GET /api/groups/[id]/summary → resumen financiero del mes actual
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+// GET /api/groups/[id]/summary?month=&year= → resumen financiero del mes
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
@@ -12,17 +12,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (membership instanceof NextResponse) return membership;
 
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const { searchParams } = new URL(req.url);
+  const month = Number(searchParams.get('month') ?? now.getMonth() + 1);
+  const year = Number(searchParams.get('year') ?? now.getFullYear());
+  const startOfMonth = new Date(year, month - 1, 1);
+  const startOfNextMonth = new Date(year, month, 1);
 
   const [expenses, members, budgets, goals] = await Promise.all([
-    prisma.expense.findMany({ where: { groupId: id, date: { gte: startOfMonth } } }),
+    prisma.expense.findMany({
+      where: { groupId: id, date: { gte: startOfMonth, lt: startOfNextMonth } },
+    }),
     prisma.groupMember.findMany({
       where: { groupId: id },
       select: { monthlySalary: true, salaryVisible: true, userId: true },
     }),
-    prisma.budget.findMany({
-      where: { groupId: id, month: now.getMonth() + 1, year: now.getFullYear() },
-    }),
+    prisma.budget.findMany({ where: { groupId: id, month, year } }),
     prisma.savingGoal.findMany({ where: { groupId: id } }),
   ]);
 

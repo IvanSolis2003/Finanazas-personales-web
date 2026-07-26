@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/apiClient';
 
 export interface Budget {
   id: string;
+  userId: string | null; // null = presupuesto del grupo
   category: string;
   monthlyLimit: number;
   month: number;
@@ -18,10 +19,15 @@ export interface AlertItem {
   createdAt: string;
 }
 
-export function useBudgets(groupId: string) {
+export function useBudgets(groupId: string, month?: number, year?: number) {
+  const params = new URLSearchParams();
+  if (month) params.set('month', String(month));
+  if (year) params.set('year', String(year));
+  const qs = params.toString() ? `?${params}` : '';
+
   return useQuery({
-    queryKey: ['budgets', groupId],
-    queryFn: () => apiClient.get<Budget[]>(`/groups/${groupId}/budgets`),
+    queryKey: ['budgets', groupId, month, year],
+    queryFn: () => apiClient.get<Budget[]>(`/groups/${groupId}/budgets${qs}`),
     enabled: !!groupId,
   });
 }
@@ -29,8 +35,13 @@ export function useBudgets(groupId: string) {
 export function useUpsertBudget(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { category: string; monthlyLimit: number }) =>
-      apiClient.post<Budget>(`/groups/${groupId}/budgets`, data),
+    mutationFn: (data: {
+      category: string;
+      monthlyLimit: number;
+      userId?: string | null;
+      month?: number;
+      year?: number;
+    }) => apiClient.post<Budget>(`/groups/${groupId}/budgets`, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['budgets', groupId] }),
   });
 }

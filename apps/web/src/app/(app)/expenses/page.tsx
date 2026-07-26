@@ -27,6 +27,8 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useGroupStore } from '@/store/groupStore';
+import { useMonthStore } from '@/store/monthStore';
+import { MonthSelector } from '@/components/MonthSelector';
 import {
   useExpenses,
   useCreateExpense,
@@ -39,7 +41,8 @@ import { EXPENSE_CATEGORIES } from '@/lib/validations';
 export default function ExpensesPage() {
   const currentGroup = useGroupStore((s) => s.currentGroup);
   const groupId = currentGroup?.id ?? '';
-  const { data: expenses, isLoading } = useExpenses(groupId);
+  const { month, year } = useMonthStore();
+  const { data: expenses, isLoading } = useExpenses(groupId, month, year);
   const { data: group } = useGroupDetail(groupId);
   const deleteExpense = useDeleteExpense(groupId);
   const [open, setOpen] = useState(false);
@@ -49,6 +52,8 @@ export default function ExpensesPage() {
       <Typography variant="h5" fontWeight="bold" color="primary">
         Gastos
       </Typography>
+
+      <MonthSelector />
 
       {isLoading ? (
         <Box display="flex" justifyContent="center" py={4}>
@@ -125,6 +130,7 @@ function AddExpenseDialog({
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<string>('FOOD');
   const [type, setType] = useState<'SHARED' | 'INDIVIDUAL'>('SHARED');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [split, setSplit] = useState<string[]>(members.map((m) => m.userId));
 
   function toggle(userId: string) {
@@ -141,6 +147,7 @@ function AddExpenseDialog({
         category,
         type,
         splitBetween: type === 'SHARED' ? split : [],
+        date: date ? new Date(date).toISOString() : undefined,
       },
       {
         onSuccess: () => {
@@ -171,6 +178,14 @@ function AddExpenseDialog({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             fullWidth
+          />
+          <TextField
+            label="Fecha"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            fullWidth
+            slotProps={{ inputLabel: { shrink: true } }}
           />
           <TextField
             select

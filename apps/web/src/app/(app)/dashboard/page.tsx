@@ -13,15 +13,21 @@ import {
 } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useGroupStore } from '@/store/groupStore';
-import { useSummary } from '@/hooks/useGroupData';
+import { useMonthStore } from '@/store/monthStore';
+import { MonthSelector } from '@/components/MonthSelector';
+import { useSummary, useMembersBreakdown } from '@/hooks/useGroupData';
 import { useAlerts, useMarkAlertsRead } from '@/hooks/useMisc';
 import { formatCurrency, ALERT_COLORS } from '@/lib/format';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { Divider, LinearProgress } from '@mui/material';
 
 export default function DashboardPage() {
   const router = useRouter();
   const currentGroup = useGroupStore((s) => s.currentGroup);
   const groupId = currentGroup?.id ?? '';
-  const { data: summary, isLoading } = useSummary(groupId);
+  const { month, year } = useMonthStore();
+  const { data: summary, isLoading } = useSummary(groupId, month, year);
+  const { data: breakdown } = useMembersBreakdown(groupId, month, year);
   const { data: alerts } = useAlerts(groupId);
   const markRead = useMarkAlertsRead(groupId);
 
@@ -30,6 +36,8 @@ export default function DashboardPage() {
       <Typography variant="h5" fontWeight="bold" color="primary">
         Resumen del mes
       </Typography>
+
+      <MonthSelector />
 
       {isLoading ? (
         <Box display="flex" justifyContent="center" py={4}>
@@ -74,6 +82,56 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </Stack>
+
+          {breakdown && breakdown.length > 0 && (
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" gutterBottom>
+                  Por miembro
+                </Typography>
+                <Stack spacing={1.5} divider={<Divider flexItem />}>
+                  {breakdown.map((m) => (
+                    <Box key={m.userId}>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" gap={1}>
+                        <Typography fontWeight={600}>
+                          {m.name}
+                          {m.isSelf ? ' (tú)' : ''}
+                        </Typography>
+                        {m.over && (
+                          <Chip
+                            size="small"
+                            color="error"
+                            icon={<WarningAmberIcon />}
+                            label="Gasta más de lo que gana"
+                          />
+                        )}
+                      </Box>
+                      {m.incomeVisible && m.income !== null ? (
+                        <>
+                          <Typography variant="caption" color="text.secondary">
+                            Ingreso {formatCurrency(m.income)} · Gasto {formatCurrency(m.spent)} ·{' '}
+                            {m.remaining !== null && m.remaining >= 0
+                              ? `Disponible ${formatCurrency(m.remaining)}`
+                              : `Excede ${formatCurrency(Math.abs(m.remaining ?? 0))}`}
+                          </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={Math.min(100, m.income > 0 ? (m.spent / m.income) * 100 : 0)}
+                            color={m.over ? 'error' : 'primary'}
+                            sx={{ mt: 0.5, height: 6, borderRadius: 3 }}
+                          />
+                        </>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          Gasto {formatCurrency(m.spent)} · sueldo oculto
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
           {summary.goals.length > 0 && (
             <Card>

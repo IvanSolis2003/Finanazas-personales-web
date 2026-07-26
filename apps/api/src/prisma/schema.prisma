@@ -107,6 +107,7 @@ model ProposalVote {
 model Budget {
   id           String          @id @default(cuid())
   groupId      String
+  userId       String?         // null = presupuesto del grupo; con valor = por miembro
   category     ExpenseCategory
   monthlyLimit Int
   month        Int
@@ -114,7 +115,7 @@ model Budget {
 
   group Group @relation(fields: [groupId], references: [id])
 
-  @@unique([groupId, category, month, year])
+  @@unique([groupId, userId, category, month, year])
 }
 
 model SavingGoal {

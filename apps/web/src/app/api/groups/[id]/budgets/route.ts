@@ -7,11 +7,12 @@ import { categoryEnum } from '@/lib/validations';
 const upsertSchema = z.object({
   category: categoryEnum,
   monthlyLimit: z.number().int().positive(),
+  userId: z.string().nullable().optional(), // null/undefined = presupuesto del grupo
   month: z.number().int().min(1).max(12).optional(),
   year: z.number().int().optional(),
 });
 
-// GET /api/groups/[id]/budgets?month=&year=
+// GET /api/groups/[id]/budgets?month=&year= → presupuestos del grupo Y de miembros
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await requireUser();
@@ -29,7 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   return NextResponse.json(budgets);
 }
 
-// POST /api/groups/[id]/budgets → crear/actualizar presupuesto (solo ADMIN)
+// POST /api/groups/[id]/budgets → crear/actualizar presupuesto (grupo o miembro)
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await requireUser();
@@ -37,12 +38,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const membership = await requireMembership(auth.userId, id);
   if (membership instanceof NextResponse) return membership;
-  if (membership.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: 'Solo administradores pueden configurar presupuestos' },
-      { status: 403 },
-    );
-  }
 
   const body = await req.json().catch(() => null);
   const parsed = upsertSchema.safeParse(body);
@@ -50,16 +45,49 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const targetUserId = parsed.data.userId ?? null;
+
+  // Permisos: presupuesto del grupo → solo admin. Presupuesto de miembro →
+  // el propio miembro o un admin.
+  if (targetUserId === null) {
+    if (membership.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Solo administradores pueden configurar el presupuesto del grupo' },
+        { status: 403 },
+      );
+    }
+  } else if (targetUserId !== auth.userId && membership.role !== 'ADMIN') {
+    return NextResponse.json(
+      { error: 'Solo puedes configurar tu propio presupuesto' },
+      { status: 403 },
+    );
+  }
+
+  // Si es de miembro, validar que pertenezca al grupo.
+  if (targetUserId !== null) {
+    const target = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: targetUserId, groupId: id } },
+    });
+    if (!target) {
+      return NextResponse.json({ error: 'El miembro no pertenece al grupo' }, { status: 400 });
+    }
+  }
+
   const now = new Date();
   const { category, monthlyLimit } = parsed.data;
   const month = parsed.data.month ?? now.getMonth() + 1;
   const year = parsed.data.year ?? now.getFullYear();
 
-  const budget = await prisma.budget.upsert({
-    where: { groupId_category_month_year: { groupId: id, category, month, year } },
-    update: { monthlyLimit },
-    create: { groupId: id, category, monthlyLimit, month, year },
+  // Upsert manual (el unique con userId nullable no sirve para upsert directo).
+  const existing = await prisma.budget.findFirst({
+    where: { groupId: id, userId: targetUserId, category, month, year },
   });
+
+  const budget = existing
+    ? await prisma.budget.update({ where: { id: existing.id }, data: { monthlyLimit } })
+    : await prisma.budget.create({
+        data: { groupId: id, userId: targetUserId, category, monthlyLimit, month, year },
+      });
 
   return NextResponse.json(budget);
 }
