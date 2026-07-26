@@ -26,14 +26,17 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useGroupStore } from '@/store/groupStore';
 import { useMonthStore } from '@/store/monthStore';
 import { MonthSelector } from '@/components/MonthSelector';
 import {
   useExpenses,
   useCreateExpense,
+  useUpdateExpense,
   useDeleteExpense,
   useGroupDetail,
+  type Expense,
 } from '@/hooks/useGroupData';
 import { formatCurrency, CATEGORY_LABELS } from '@/lib/format';
 import { EXPENSE_CATEGORIES } from '@/lib/validations';
@@ -45,7 +48,8 @@ export default function ExpensesPage() {
   const { data: expenses, isLoading } = useExpenses(groupId, month, year);
   const { data: group } = useGroupDetail(groupId);
   const deleteExpense = useDeleteExpense(groupId);
-  const [open, setOpen] = useState(false);
+  // null = cerrado; 'new' = crear; Expense = editar ese gasto
+  const [dialog, setDialog] = useState<Expense | 'new' | null>(null);
 
   return (
     <Stack spacing={2}>
@@ -63,19 +67,21 @@ export default function ExpensesPage() {
         <Stack spacing={1}>
           {expenses.map((e) => (
             <Card key={e.id} variant="outlined">
-              <CardContent
-                sx={{ display: 'flex', alignItems: 'center', '&:last-child': { pb: 2 } }}
-              >
-                <Box sx={{ flexGrow: 1 }}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', '&:last-child': { pb: 2 } }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography fontWeight={600}>{e.description}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {CATEGORY_LABELS[e.category]} · {e.type === 'SHARED' ? 'Compartido' : 'Individual'} ·{' '}
-                    {e.paidBy.name}
+                    {CATEGORY_LABELS[e.category]} ·{' '}
+                    {e.type === 'SHARED' ? 'Compartido' : 'Individual'} · {e.paidBy.name} ·{' '}
+                    {new Date(e.date).toLocaleDateString('es-CL')}
                   </Typography>
                 </Box>
-                <Typography fontWeight="bold" color="error.main" mr={1}>
+                <Typography fontWeight="bold" color="error.main" mr={0.5}>
                   {formatCurrency(e.amount)}
                 </Typography>
+                <IconButton size="small" onClick={() => setDialog(e)} aria-label="Editar">
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
                 <IconButton
                   size="small"
                   onClick={() => deleteExpense.mutate(e.id)}
@@ -95,17 +101,18 @@ export default function ExpensesPage() {
 
       <Fab
         color="primary"
-        onClick={() => setOpen(true)}
+        onClick={() => setDialog('new')}
         sx={{ position: 'fixed', bottom: 24, right: 24 }}
         aria-label="Agregar gasto"
       >
         <AddIcon />
       </Fab>
 
-      {group && (
-        <AddExpenseDialog
-          open={open}
-          onClose={() => setOpen(false)}
+      {group && dialog && (
+        <ExpenseDialog
+          key={dialog === 'new' ? 'new' : dialog.id}
+          expense={dialog === 'new' ? undefined : dialog}
+          onClose={() => setDialog(null)}
           groupId={groupId}
           members={group.members.map((m) => ({ userId: m.userId, name: m.user.name }))}
         />
@@ -114,24 +121,32 @@ export default function ExpensesPage() {
   );
 }
 
-function AddExpenseDialog({
-  open,
+function ExpenseDialog({
+  expense,
   onClose,
   groupId,
   members,
 }: {
-  open: boolean;
+  expense?: Expense;
   onClose: () => void;
   groupId: string;
   members: { userId: string; name: string }[];
 }) {
+  const isEdit = !!expense;
   const createExpense = useCreateExpense(groupId);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<string>('FOOD');
-  const [type, setType] = useState<'SHARED' | 'INDIVIDUAL'>('SHARED');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [split, setSplit] = useState<string[]>(members.map((m) => m.userId));
+  const updateExpense = useUpdateExpense(groupId);
+  const mutation = isEdit ? updateExpense : createExpense;
+
+  const [description, setDescription] = useState(expense?.description ?? '');
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : '');
+  const [category, setCategory] = useState<string>(expense?.category ?? 'FOOD');
+  const [type, setType] = useState<'SHARED' | 'INDIVIDUAL'>(expense?.type ?? 'SHARED');
+  const [date, setDate] = useState(
+    (expense ? new Date(expense.date) : new Date()).toISOString().slice(0, 10),
+  );
+  const [split, setSplit] = useState<string[]>(
+    expense && expense.type === 'SHARED' ? expense.splitBetween : members.map((m) => m.userId),
+  );
 
   function toggle(userId: string) {
     setSplit((prev) =>
@@ -140,31 +155,27 @@ function AddExpenseDialog({
   }
 
   function submit() {
-    createExpense.mutate(
-      {
-        description: description.trim(),
-        amount: Number(amount),
-        category,
-        type,
-        splitBetween: type === 'SHARED' ? split : [],
-        date: date ? new Date(date).toISOString() : undefined,
-      },
-      {
-        onSuccess: () => {
-          setDescription('');
-          setAmount('');
-          onClose();
-        },
-      },
-    );
+    const data = {
+      description: description.trim(),
+      amount: Number(amount),
+      category,
+      type,
+      splitBetween: type === 'SHARED' ? split : [],
+      date: date ? new Date(date).toISOString() : undefined,
+    };
+    if (isEdit) {
+      updateExpense.mutate({ expId: expense.id, data }, { onSuccess: onClose });
+    } else {
+      createExpense.mutate(data, { onSuccess: onClose });
+    }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>Nuevo gasto</DialogTitle>
+    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle>{isEdit ? 'Editar gasto' : 'Nuevo gasto'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} mt={1}>
-          {createExpense.isError && <Alert severity="error">{createExpense.error.message}</Alert>}
+          {mutation.isError && <Alert severity="error">{mutation.error.message}</Alert>}
           <TextField
             label="Descripción"
             value={description}
@@ -222,10 +233,7 @@ function AddExpenseDialog({
                   <FormControlLabel
                     key={m.userId}
                     control={
-                      <Checkbox
-                        checked={split.includes(m.userId)}
-                        onChange={() => toggle(m.userId)}
-                      />
+                      <Checkbox checked={split.includes(m.userId)} onChange={() => toggle(m.userId)} />
                     }
                     label={m.name}
                   />
@@ -240,9 +248,9 @@ function AddExpenseDialog({
         <Button
           variant="contained"
           onClick={submit}
-          disabled={createExpense.isPending || !description.trim() || !amount}
+          disabled={mutation.isPending || !description.trim() || !amount}
         >
-          Guardar
+          {isEdit ? 'Guardar cambios' : 'Guardar'}
         </Button>
       </DialogActions>
     </Dialog>

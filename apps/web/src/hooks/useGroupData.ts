@@ -102,6 +102,20 @@ export function useCreateExpense(groupId: string) {
   });
 }
 
+export function useUpdateExpense(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ expId, data }: { expId: string; data: NewExpense }) =>
+      apiClient.patch<Expense>(`/groups/${groupId}/expenses/${expId}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expenses', groupId] });
+      qc.invalidateQueries({ queryKey: ['summary', groupId] });
+      qc.invalidateQueries({ queryKey: ['balance', groupId] });
+      qc.invalidateQueries({ queryKey: ['members-breakdown', groupId] });
+    },
+  });
+}
+
 export function useDeleteExpense(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
