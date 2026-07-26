@@ -154,6 +154,7 @@ export interface MonthMetric {
   year: number;
   key: string;
   label: string;
+  future: boolean;
   income: number;
   expenses: number;
   available: number;
