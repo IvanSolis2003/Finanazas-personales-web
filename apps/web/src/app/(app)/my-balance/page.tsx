@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import {
   Stack,
   Typography,
@@ -8,28 +7,34 @@ import {
   CardContent,
   Box,
   CircularProgress,
-  ToggleButtonGroup,
-  ToggleButton,
   Chip,
 } from '@mui/material';
 import { useGroupStore } from '@/store/groupStore';
+import { useMonthStore } from '@/store/monthStore';
+import { MonthSelector } from '@/components/MonthSelector';
 import { useMe } from '@/hooks/useAuth';
-import { useMetrics } from '@/hooks/useGroupData';
+import { useMembersBreakdown, useMetrics } from '@/hooks/useGroupData';
 import { formatCurrency, formatCompact, CATEGORY_LABELS } from '@/lib/format';
 
 export default function MyBalancePage() {
   const currentGroup = useGroupStore((s) => s.currentGroup);
   const groupId = currentGroup?.id ?? '';
+  const { month, year } = useMonthStore();
   const { data: me } = useMe();
-  const [months, setMonths] = useState(6);
-  const { data, isLoading } = useMetrics(groupId, months, me?.id);
 
-  const series = data?.series ?? [];
-  const income = data?.income ?? 0;
+  // Datos del mes puntual elegido (desglose personal).
+  const { data: breakdown, isLoading } = useMembersBreakdown(groupId, month, year);
+  const mine = breakdown?.find((m) => m.isSelf);
+
+  // Evolución: mis últimos 6 meses (se va acumulando con el tiempo).
+  const { data: metrics } = useMetrics(groupId, 6, me?.id);
+  const series = metrics?.series ?? [];
+  const income = metrics?.income ?? mine?.income ?? 0;
   const max = Math.max(income, ...series.map((s) => s.expenses), 1);
-  const past = series.filter((s) => !s.future);
-  const curr = past[past.length - 1];
-  const avgSpend = past.length ? Math.round(past.reduce((a, s) => a + s.expenses, 0) / past.length) : 0;
+
+  const spent = mine?.spent ?? 0;
+  const myIncome = mine?.income ?? 0;
+  const available = myIncome - spent;
 
   return (
     <Stack spacing={2}>
@@ -37,15 +42,11 @@ export default function MyBalancePage() {
         Mi balance
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        Tu análisis personal: cuánto aportas de ingreso y cuánto gastas tú (tus gastos individuales
-        + tu parte de los compartidos).
+        Tu análisis personal por mes: cuánto aportas de ingreso y cuánto gastas tú (tus gastos
+        individuales + tu parte de los compartidos). Elige el mes que quieras ver.
       </Typography>
 
-      <ToggleButtonGroup value={months} exclusive size="small" onChange={(_, v) => v && setMonths(v)}>
-        <ToggleButton value={3}>3 meses</ToggleButton>
-        <ToggleButton value={6}>6 meses</ToggleButton>
-        <ToggleButton value={12}>12 meses</ToggleButton>
-      </ToggleButtonGroup>
+      <MonthSelector />
 
       {isLoading || !me ? (
         <Box display="flex" justifyContent="center" py={4}>
@@ -53,32 +54,47 @@ export default function MyBalancePage() {
         </Box>
       ) : (
         <>
-          {/* KPIs personales del mes actual */}
-          {curr && (
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <Kpi title="Mi ingreso" value={formatCurrency(curr.income)} hint="mensual" />
-              <Kpi title="Mi gasto" value={formatCurrency(curr.expenses)} hint={curr.label} color="error.main" />
-              <Kpi
-                title="Mi disponible"
-                value={formatCurrency(curr.available)}
-                hint={curr.label}
-                color={curr.available < 0 ? 'error.main' : 'success.main'}
-              />
-            </Box>
-          )}
-          <Typography variant="caption" color="text.secondary">
-            Tu gasto promedio: {formatCurrency(avgSpend)} por mes.
-          </Typography>
+          {/* KPIs del mes elegido */}
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Kpi title="Mi ingreso" value={formatCurrency(myIncome)} hint="mensual" />
+            <Kpi title="Mi gasto" value={formatCurrency(spent)} hint="este mes" color="error.main" />
+            <Kpi
+              title="Mi disponible"
+              value={formatCurrency(available)}
+              hint="este mes"
+              color={available < 0 ? 'error.main' : 'success.main'}
+            />
+          </Box>
 
-          {/* Gráfico de mi gasto por mes */}
+          {/* Mis categorías del mes elegido */}
+          {mine && Object.keys(mine.byCategory).length > 0 ? (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="subtitle2" gutterBottom>
+                  En qué gasté yo este mes
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {Object.entries(mine.byCategory)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([cat, amount]) => (
+                      <Chip key={cat} label={`${CATEGORY_LABELS[cat]}: ${formatCurrency(amount)}`} size="small" />
+                    ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          ) : (
+            <Typography color="text.secondary">No tienes gastos registrados este mes.</Typography>
+          )}
+
+          {/* Evolución: se va acumulando mes a mes */}
           <Card>
             <CardContent>
-              <Typography variant="subtitle2">Mi gasto por mes</Typography>
+              <Typography variant="subtitle2">Mi evolución (últimos meses)</Typography>
               <Typography variant="caption" color="text.secondary">
-                La línea verde es tu ingreso. Si una barra la supera (roja), gastaste más de lo que
-                ganas ese mes.
+                Tu gasto mes a mes. Se va sumando un mes nuevo a medida que pasa el tiempo. La línea
+                verde es tu ingreso.
               </Typography>
-              <Box sx={{ position: 'relative', height: 160, display: 'flex', alignItems: 'flex-end', gap: 1, mt: 4 }}>
+              <Box sx={{ position: 'relative', height: 150, display: 'flex', alignItems: 'flex-end', gap: 1, mt: 4 }}>
                 {income > 0 && (
                   <Box
                     sx={{
@@ -98,27 +114,37 @@ export default function MyBalancePage() {
                     </Typography>
                   </Box>
                 )}
-                {series.map((s) => (
-                  <Box key={s.key} sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <Typography variant="caption" color="text.secondary" fontSize={10}>
-                      {formatCompact(s.expenses)}
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: '68%',
-                        height: `${(s.expenses / max) * 100}%`,
-                        minHeight: s.expenses > 0 ? 4 : 0,
-                        bgcolor: s.expenses > income && income > 0 ? 'error.main' : 'primary.main',
-                        opacity: s.future ? 0.45 : 1,
-                        borderRadius: '4px 4px 0 0',
-                      }}
-                    />
-                  </Box>
-                ))}
+                {series.map((s) => {
+                  const isSelected = s.month === month && s.year === year;
+                  return (
+                    <Box key={s.key} sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <Typography variant="caption" color="text.secondary" fontSize={10}>
+                        {formatCompact(s.expenses)}
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: '68%',
+                          height: `${(s.expenses / max) * 100}%`,
+                          minHeight: s.expenses > 0 ? 4 : 0,
+                          bgcolor: s.expenses > income && income > 0 ? 'error.main' : 'primary.main',
+                          opacity: s.future ? 0.45 : 1,
+                          outline: isSelected ? '2px solid' : 'none',
+                          outlineColor: 'secondary.main',
+                          borderRadius: '4px 4px 0 0',
+                        }}
+                      />
+                    </Box>
+                  );
+                })}
               </Box>
               <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                 {series.map((s) => (
-                  <Typography key={s.key} variant="caption" sx={{ flex: 1, textAlign: 'center' }} fontSize={10}>
+                  <Typography
+                    key={s.key}
+                    variant="caption"
+                    sx={{ flex: 1, textAlign: 'center', fontWeight: s.month === month && s.year === year ? 700 : 400 }}
+                    fontSize={10}
+                  >
                     {s.label}
                     {s.future ? ' (próx.)' : ''}
                   </Typography>
@@ -126,24 +152,6 @@ export default function MyBalancePage() {
               </Box>
             </CardContent>
           </Card>
-
-          {/* Mis categorías del mes actual */}
-          {curr && Object.keys(curr.byCategory).length > 0 && (
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" gutterBottom>
-                  En qué gasté yo ({curr.label})
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {Object.entries(curr.byCategory)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([cat, amount]) => (
-                      <Chip key={cat} label={`${CATEGORY_LABELS[cat]}: ${formatCurrency(amount)}`} size="small" />
-                    ))}
-                </Stack>
-              </CardContent>
-            </Card>
-          )}
         </>
       )}
     </Stack>
