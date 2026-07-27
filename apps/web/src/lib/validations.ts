@@ -45,6 +45,14 @@ export const expenseSchema = z.object({
   date: z.string().optional(),
 });
 
+export const recurringSchema = z.object({
+  description: z.string().min(1, 'Requerido'),
+  amount: z.number().int().positive('Debe ser mayor a 0'),
+  category: categoryEnum,
+  type: z.enum(['SHARED', 'INDIVIDUAL']),
+  splitBetween: z.array(z.string()).optional(),
+});
+
 export const proposalSchema = z.object({
   title: z.string().min(1, 'Requerido'),
   description: z.string().optional(),

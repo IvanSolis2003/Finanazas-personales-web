@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Stack,
   Typography,
@@ -9,6 +9,7 @@ import {
   Button,
   IconButton,
   Box,
+  Chip,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -23,10 +24,12 @@ import {
   Checkbox,
   Alert,
   Fab,
+  Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import { useGroupStore } from '@/store/groupStore';
 import { useMonthStore } from '@/store/monthStore';
 import { MonthSelector } from '@/components/MonthSelector';
@@ -38,6 +41,7 @@ import {
   useGroupDetail,
   type Expense,
 } from '@/hooks/useGroupData';
+import { useCreateRecurring, useApplyRecurring } from '@/hooks/useRecurring';
 import { formatCurrency, CATEGORY_LABELS } from '@/lib/format';
 import { EXPENSE_CATEGORIES } from '@/lib/validations';
 
@@ -48,8 +52,19 @@ export default function ExpensesPage() {
   const { data: expenses, isLoading } = useExpenses(groupId, month, year);
   const { data: group } = useGroupDetail(groupId);
   const deleteExpense = useDeleteExpense(groupId);
+  const applyRecurring = useApplyRecurring(groupId);
   // null = cerrado; 'new' = crear; Expense = editar ese gasto
   const [dialog, setDialog] = useState<Expense | 'new' | null>(null);
+
+  // Auto-genera los gastos fijos al ver el mes actual o uno futuro (anticipar).
+  useEffect(() => {
+    if (!groupId) return;
+    const now = new Date();
+    const targetYM = year * 12 + month;
+    const currentYM = now.getFullYear() * 12 + (now.getMonth() + 1);
+    if (targetYM >= currentYM) applyRecurring.mutate({ month, year });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, month, year]);
 
   return (
     <Stack spacing={2}>
@@ -69,7 +84,19 @@ export default function ExpensesPage() {
             <Card key={e.id} variant="outlined">
               <CardContent sx={{ display: 'flex', alignItems: 'center', '&:last-child': { pb: 2 } }}>
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography fontWeight={600}>{e.description}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography fontWeight={600}>{e.description}</Typography>
+                    {e.recurringId && (
+                      <Chip
+                        icon={<AutorenewIcon />}
+                        label="fijo"
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        sx={{ height: 20 }}
+                      />
+                    )}
+                  </Box>
                   <Typography variant="caption" color="text.secondary">
                     {CATEGORY_LABELS[e.category]} ·{' '}
                     {e.type === 'SHARED' ? 'Compartido' : 'Individual'} · {e.paidBy.name} ·{' '}
@@ -136,7 +163,9 @@ function ExpenseDialog({
   const { month: selMonth, year: selYear } = useMonthStore();
   const createExpense = useCreateExpense(groupId);
   const updateExpense = useUpdateExpense(groupId);
+  const createRecurring = useCreateRecurring(groupId);
   const mutation = isEdit ? updateExpense : createExpense;
+  const [makeFixed, setMakeFixed] = useState(false);
 
   // Formato yyyy-mm-dd en hora local (evita corrimientos de zona horaria).
   const toInput = (d: Date) =>
@@ -178,7 +207,20 @@ function ExpenseDialog({
     if (isEdit) {
       updateExpense.mutate({ expId: expense.id, data }, { onSuccess: onClose });
     } else {
-      createExpense.mutate(data, { onSuccess: onClose });
+      createExpense.mutate(data, {
+        onSuccess: () => {
+          if (makeFixed) {
+            createRecurring.mutate({
+              description: data.description,
+              amount: data.amount,
+              category: data.category,
+              type: data.type,
+              splitBetween: data.splitBetween,
+            });
+          }
+          onClose();
+        },
+      });
     }
   }
 
@@ -252,6 +294,18 @@ function ExpenseDialog({
                 ))}
               </FormGroup>
             </Box>
+          )}
+
+          {!isEdit && (
+            <>
+              <Divider />
+              <FormControlLabel
+                control={
+                  <Checkbox checked={makeFixed} onChange={(e) => setMakeFixed(e.target.checked)} />
+                }
+                label="Gasto fijo (se repite cada mes automáticamente)"
+              />
+            </>
           )}
         </Stack>
       </DialogContent>

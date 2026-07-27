@@ -17,6 +17,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const { searchParams } = new URL(req.url);
   const n = Math.min(12, Math.max(2, Number(searchParams.get('months') ?? 6)));
+  // userId opcional: métricas personales (gasto atribuido a esa persona).
+  const userId = searchParams.get('userId');
 
   const now = new Date();
   const FUTURE_MAX = 3; // hasta 3 meses adelante si tienen datos
@@ -26,23 +28,45 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const rangeEnd = new Date(now.getFullYear(), now.getMonth() + FUTURE_MAX + 1, 1);
 
   const [members, expenses] = await Promise.all([
-    prisma.groupMember.findMany({ where: { groupId: id }, select: { monthlySalary: true } }),
+    prisma.groupMember.findMany({
+      where: { groupId: id },
+      select: { monthlySalary: true, userId: true },
+    }),
     prisma.expense.findMany({
       where: { groupId: id, date: { gte: rangeStart, lt: rangeEnd } },
-      select: { amount: true, category: true, date: true },
+      select: {
+        amount: true,
+        category: true,
+        date: true,
+        type: true,
+        splitBetween: true,
+        paidById: true,
+      },
     }),
   ]);
 
-  const income = members.reduce((s, m) => s + m.monthlySalary, 0);
+  const income = userId
+    ? members.find((m) => m.userId === userId)?.monthlySalary ?? 0
+    : members.reduce((s, m) => s + m.monthlySalary, 0);
+
+  // Cuánto de este gasto cuenta para el objetivo (grupo completo o una persona).
+  const contribution = (e: (typeof expenses)[number]): number => {
+    if (!userId) return e.amount;
+    if (e.type === 'INDIVIDUAL') return e.paidById === userId ? e.amount : 0;
+    if (e.splitBetween.includes(userId)) return Math.round(e.amount / (e.splitBetween.length || 1));
+    return 0;
+  };
 
   // Bucket por mes.
   const buckets: Record<string, { expenses: number; byCategory: Record<string, number> }> = {};
   for (const e of expenses) {
+    const amount = contribution(e);
+    if (amount === 0) continue;
     const d = new Date(e.date);
     const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
     if (!buckets[key]) buckets[key] = { expenses: 0, byCategory: {} };
-    buckets[key].expenses += e.amount;
-    buckets[key].byCategory[e.category] = (buckets[key].byCategory[e.category] ?? 0) + e.amount;
+    buckets[key].expenses += amount;
+    buckets[key].byCategory[e.category] = (buckets[key].byCategory[e.category] ?? 0) + amount;
   }
 
   const build = (offset: number) => {

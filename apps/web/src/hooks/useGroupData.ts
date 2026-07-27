@@ -19,6 +19,7 @@ export interface Expense {
   category: string;
   type: 'SHARED' | 'INDIVIDUAL';
   splitBetween: string[];
+  recurringId: string | null;
   date: string;
   paidBy: { id: string; name: string };
 }
@@ -161,13 +162,12 @@ export interface MonthMetric {
   byCategory: Record<string, number>;
 }
 
-export function useMetrics(groupId: string, months = 6) {
+export function useMetrics(groupId: string, months = 6, userId?: string) {
+  const qs = `?months=${months}${userId ? `&userId=${userId}` : ''}`;
   return useQuery({
-    queryKey: ['metrics', groupId, months],
+    queryKey: ['metrics', groupId, months, userId ?? 'group'],
     queryFn: () =>
-      apiClient.get<{ income: number; series: MonthMetric[] }>(
-        `/groups/${groupId}/metrics?months=${months}`,
-      ),
+      apiClient.get<{ income: number; series: MonthMetric[] }>(`/groups/${groupId}/metrics${qs}`),
     enabled: !!groupId,
   });
 }

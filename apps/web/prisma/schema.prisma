@@ -45,6 +45,7 @@ model Group {
   budgets   Budget[]
   goals     SavingGoal[]
   alerts    Alert[]
+  recurring RecurringExpense[]
 }
 
 model GroupMember {
@@ -71,11 +72,28 @@ model Expense {
   category     ExpenseCategory
   type         ExpenseType
   splitBetween String[]
+  recurringId  String?         // si viene de un gasto fijo (plantilla)
   date         DateTime        @default(now())
   createdAt    DateTime        @default(now())
 
   group  Group @relation(fields: [groupId], references: [id])
   paidBy User  @relation(fields: [paidById], references: [id])
+}
+
+// Plantilla de gasto fijo: se materializa como Expense cada mes.
+model RecurringExpense {
+  id           String          @id @default(cuid())
+  groupId      String
+  paidById     String
+  description  String
+  amount       Int
+  category     ExpenseCategory
+  type         ExpenseType
+  splitBetween String[]
+  active       Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
 }
 
 model Proposal {

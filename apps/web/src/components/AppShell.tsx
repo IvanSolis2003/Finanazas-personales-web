@@ -74,11 +74,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             <MoreVertIcon />
           </IconButton>
           <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
+            <MenuItem onClick={() => { setAnchor(null); router.push('/my-balance'); }}>
+              Mi balance (personal)
+            </MenuItem>
             <MenuItem onClick={() => { setAnchor(null); router.push('/balance'); }}>
               Balance entre miembros
             </MenuItem>
             <MenuItem onClick={() => { setAnchor(null); router.push('/metrics'); }}>
               Métricas por mes
+            </MenuItem>
+            <MenuItem onClick={() => { setAnchor(null); router.push('/recurring'); }}>
+              Gastos fijos
             </MenuItem>
             <MenuItem onClick={() => { setAnchor(null); router.push('/budgets'); }}>
               Presupuestos
