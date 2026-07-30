@@ -74,6 +74,7 @@ model Expense {
   type         ExpenseType
   splitBetween String[]
   recurringId  String?         // si viene de un gasto fijo (plantilla)
+  proposalId   String?         // si viene de una propuesta aprobada
   date         DateTime        @default(now())
   createdAt    DateTime        @default(now())
 

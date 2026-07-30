@@ -49,6 +49,13 @@ export function useVoteProposal(groupId: string) {
   return useMutation({
     mutationFn: ({ propId, vote }: { propId: string; vote: Vote }) =>
       apiClient.post(`/groups/${groupId}/proposals/${propId}/vote`, { vote }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['proposals', groupId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['proposals', groupId] });
+      // Si la propuesta se aprobó, se creó un gasto: refrescar vistas de gastos.
+      qc.invalidateQueries({ queryKey: ['expenses', groupId] });
+      qc.invalidateQueries({ queryKey: ['summary', groupId] });
+      qc.invalidateQueries({ queryKey: ['balance', groupId] });
+      qc.invalidateQueries({ queryKey: ['members-breakdown', groupId] });
+    },
   });
 }

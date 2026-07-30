@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireUser, requireMembership } from '@/lib/apiAuth';
 import { voteSchema } from '@/lib/validations';
+import { materializeApprovedProposal } from '@/lib/proposalExpense';
 
 // POST /api/groups/[id]/proposals/[propId]/vote → votar propuesta
 export async function POST(
@@ -54,6 +55,7 @@ export async function POST(
       where: { id: propId },
       data: { status: 'APPROVED', resolvedAt: new Date() },
     });
+    await materializeApprovedProposal(proposal); // pasa a gasto del mes en curso
     return NextResponse.json(updated);
   }
 
@@ -77,6 +79,7 @@ export async function POST(
       where: { id: propId },
       data: { status: 'APPROVED', resolvedAt: new Date() },
     });
+    await materializeApprovedProposal(proposal); // pasa a gasto del mes en curso
     return NextResponse.json(updated);
   }
 

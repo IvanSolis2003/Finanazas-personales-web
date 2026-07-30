@@ -126,6 +126,12 @@ function ProposalCard({
           {formatCurrency(proposal.amount)}
         </Typography>
 
+        {proposal.status === 'APPROVED' && (
+          <Typography variant="caption" color="success.main" display="block" mt={0.5}>
+            ✓ Se agregó a los gastos del mes.
+          </Typography>
+        )}
+
         {proposal.status === 'PENDING' && (
           <Box mt={1}>
             <Typography variant="caption" color="text.secondary">
