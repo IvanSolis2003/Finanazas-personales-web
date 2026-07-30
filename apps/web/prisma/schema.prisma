@@ -52,10 +52,11 @@ model GroupMember {
   id            String     @id @default(cuid())
   userId        String
   groupId       String
-  monthlySalary Int        @default(0)
-  salaryVisible Boolean    @default(true)
-  role          MemberRole @default(MEMBER)
-  joinedAt      DateTime   @default(now())
+  monthlySalary  Int        @default(0)
+  salaryVisible  Boolean    @default(true) // otros pueden ver su sueldo
+  balanceVisible Boolean    @default(true) // otros pueden ver su balance individual
+  role           MemberRole @default(MEMBER)
+  joinedAt       DateTime   @default(now())
 
   user  User  @relation(fields: [userId], references: [id])
   group Group @relation(fields: [groupId], references: [id])

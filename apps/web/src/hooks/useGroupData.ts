@@ -39,6 +39,7 @@ export interface GroupMemberDetail {
   role: 'ADMIN' | 'MEMBER';
   monthlySalary: number;
   salaryVisible: boolean;
+  balanceVisible: boolean;
   user: { id: string; name: string; email: string };
 }
 
@@ -142,6 +143,7 @@ export interface MemberBreakdown {
   userId: string;
   name: string;
   isSelf: boolean;
+  private: boolean;
   incomeVisible: boolean;
   income: number | null;
   spent: number;

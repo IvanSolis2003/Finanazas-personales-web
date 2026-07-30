@@ -35,14 +35,32 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { total, byCategory } = attributeSpending(expenses, memberIds);
 
   const breakdown = members.map((m) => {
+    const isSelf = m.userId === auth.userId;
+    // Balance privado: otros no ven nada de este miembro (salvo su nombre).
+    const canSeeBalance = m.balanceVisible || isSelf;
+    if (!canSeeBalance) {
+      return {
+        userId: m.userId,
+        name: m.user.name,
+        isSelf,
+        private: true,
+        incomeVisible: false,
+        income: null,
+        spent: 0,
+        byCategory: {} as Record<string, number>,
+        over: false,
+        remaining: null,
+      };
+    }
     // El sueldo se muestra si es visible o si es el propio usuario.
-    const canSeeIncome = m.salaryVisible || m.userId === auth.userId;
+    const canSeeIncome = m.salaryVisible || isSelf;
     const income = canSeeIncome ? m.monthlySalary : null;
     const spent = total[m.userId] ?? 0;
     return {
       userId: m.userId,
       name: m.user.name,
-      isSelf: m.userId === auth.userId,
+      isSelf,
+      private: false,
       incomeVisible: canSeeIncome,
       income,
       spent,

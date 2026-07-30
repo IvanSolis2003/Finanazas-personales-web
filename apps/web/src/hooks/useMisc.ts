@@ -65,8 +65,11 @@ export function useMarkAlertsRead(groupId: string) {
 export function useUpdateSalary(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { monthlySalary: number; salaryVisible?: boolean }) =>
-      apiClient.patch(`/groups/${groupId}/members/salary`, data),
+    mutationFn: (data: {
+      monthlySalary: number;
+      salaryVisible?: boolean;
+      balanceVisible?: boolean;
+    }) => apiClient.patch(`/groups/${groupId}/members/salary`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['group', groupId] });
       qc.invalidateQueries({ queryKey: ['summary', groupId] });

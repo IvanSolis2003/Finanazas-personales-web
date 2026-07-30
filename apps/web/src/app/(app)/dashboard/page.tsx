@@ -19,6 +19,7 @@ import { useSummary, useMembersBreakdown } from '@/hooks/useGroupData';
 import { useAlerts, useMarkAlertsRead } from '@/hooks/useMisc';
 import { formatCurrency, ALERT_COLORS } from '@/lib/format';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Divider, LinearProgress } from '@mui/material';
 
 export default function DashboardPage() {
@@ -97,16 +98,27 @@ export default function DashboardPage() {
                           {m.name}
                           {m.isSelf ? ' (tú)' : ''}
                         </Typography>
-                        {m.over && (
+                        {m.private ? (
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            icon={<LockOutlinedIcon />}
+                            label="Privado"
+                          />
+                        ) : m.over ? (
                           <Chip
                             size="small"
                             color="error"
                             icon={<WarningAmberIcon />}
                             label="Gasta más de lo que gana"
                           />
-                        )}
+                        ) : null}
                       </Box>
-                      {m.incomeVisible && m.income !== null ? (
+                      {m.private ? (
+                        <Typography variant="caption" color="text.secondary">
+                          Este miembro dejó su balance como privado.
+                        </Typography>
+                      ) : m.incomeVisible && m.income !== null ? (
                         <>
                           <Typography variant="caption" color="text.secondary">
                             Ingreso {formatCurrency(m.income)} · Gasto {formatCurrency(m.spent)} ·{' '}

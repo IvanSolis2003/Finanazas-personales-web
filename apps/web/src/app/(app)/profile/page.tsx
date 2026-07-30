@@ -30,11 +30,13 @@ export default function ProfilePage() {
   const myMember = group?.members.find((m) => m.userId === me?.id);
   const [salary, setSalary] = useState('');
   const [visible, setVisible] = useState(true);
+  const [balanceVisible, setBalanceVisible] = useState(true);
 
   useEffect(() => {
     if (myMember) {
       setSalary(String(myMember.monthlySalary));
       setVisible(myMember.salaryVisible);
+      setBalanceVisible(myMember.balanceVisible);
     }
   }, [myMember]);
 
@@ -82,16 +84,33 @@ export default function ProfilePage() {
             />
             <FormControlLabel
               control={<Switch checked={visible} onChange={(e) => setVisible(e.target.checked)} />}
-              label="Visible para otros miembros"
+              label="Mostrar mi sueldo a otros miembros"
             />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={balanceVisible}
+                  onChange={(e) => setBalanceVisible(e.target.checked)}
+                />
+              }
+              label="Mostrar mi balance individual a otros miembros"
+            />
+            <Typography variant="caption" color="text.secondary">
+              Si desactivas tu balance, los demás verán tu nombre como “privado”, sin tus montos. Tú
+              siempre ves tu propio balance.
+            </Typography>
             <Button
               variant="contained"
               onClick={() =>
-                updateSalary.mutate({ monthlySalary: Number(salary), salaryVisible: visible })
+                updateSalary.mutate({
+                  monthlySalary: Number(salary),
+                  salaryVisible: visible,
+                  balanceVisible,
+                })
               }
               disabled={updateSalary.isPending}
             >
-              Guardar sueldo
+              Guardar
             </Button>
           </Stack>
         </CardContent>

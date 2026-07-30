@@ -81,6 +81,7 @@ export const budgetSchema = z.object({
 export const salarySchema = z.object({
   monthlySalary: z.number().int().min(0),
   salaryVisible: z.boolean().optional(),
+  balanceVisible: z.boolean().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
