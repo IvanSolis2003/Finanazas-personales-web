@@ -14,7 +14,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const goals = await prisma.savingGoal.findMany({
     where: { groupId: id },
-    orderBy: { targetDate: 'asc' },
+    include: { votes: { select: { userId: true, vote: true } } },
+    orderBy: { createdAt: 'desc' },
   });
   return NextResponse.json(goals);
 }
@@ -34,9 +35,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  // La meta queda PENDIENTE hasta que los miembros la aprueben.
   const goal = await prisma.savingGoal.create({
     data: {
       groupId: id,
+      proposedById: auth.userId,
       name: parsed.data.name,
       targetAmount: parsed.data.targetAmount,
       targetDate: new Date(parsed.data.targetDate),

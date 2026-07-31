@@ -145,15 +145,43 @@ model Budget {
 }
 
 model SavingGoal {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   groupId      String
+  proposedById String?        // quién propuso la meta
   name         String
   targetAmount Int
-  savedAmount  Int      @default(0)
+  savedAmount  Int            @default(0)
   targetDate   DateTime
-  createdAt    DateTime @default(now())
+  status       ProposalStatus @default(PENDING) // requiere aprobación de los miembros
+  createdAt    DateTime       @default(now())
 
-  group Group @relation(fields: [groupId], references: [id])
+  group         Group              @relation(fields: [groupId], references: [id])
+  votes         GoalVote[]
+  contributions GoalContribution[]
+}
+
+model GoalVote {
+  id        String   @id @default(cuid())
+  goalId    String
+  userId    String
+  vote      VoteType
+  createdAt DateTime @default(now())
+
+  goal SavingGoal @relation(fields: [goalId], references: [id])
+
+  @@unique([goalId, userId])
+}
+
+// Aporte manual a una meta; baja el disponible del mes en que se registra.
+model GoalContribution {
+  id      String   @id @default(cuid())
+  goalId  String
+  groupId String
+  userId  String
+  amount  Int
+  date    DateTime @default(now())
+
+  goal SavingGoal @relation(fields: [goalId], references: [id])
 }
 
 model Alert {

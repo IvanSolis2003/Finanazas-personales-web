@@ -6,10 +6,11 @@ import { apiClient } from '@/lib/apiClient';
 export interface Summary {
   totalIncome: number;
   totalExpenses: number;
+  totalSavings: number;
   available: number;
   byCategory: Record<string, number>;
   budgets: { id: string; category: string; monthlyLimit: number }[];
-  goals: { id: string; name: string; targetAmount: number; savedAmount: number }[];
+  goals: { id: string; name: string; targetAmount: number; savedAmount: number; status: string }[];
 }
 
 export interface Expense {
@@ -149,6 +150,7 @@ export interface MemberBreakdown {
   incomeVisible: boolean;
   income: number | null;
   spent: number;
+  savings: number;
   byCategory: Record<string, number>;
   over: boolean;
   remaining: number | null;

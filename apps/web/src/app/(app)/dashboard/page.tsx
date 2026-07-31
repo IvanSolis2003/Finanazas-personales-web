@@ -145,19 +145,27 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {summary.goals.length > 0 && (
+          {summary.goals.filter((g) => g.status === 'APPROVED').length > 0 && (
             <Card>
               <CardContent>
                 <Typography variant="subtitle2" gutterBottom>
                   Metas de ahorro
                 </Typography>
+                {summary.totalSavings > 0 && (
+                  <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                    Aportado este mes: {formatCurrency(summary.totalSavings)} (descontado del
+                    disponible)
+                  </Typography>
+                )}
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {summary.goals.map((g) => (
-                    <Chip
-                      key={g.id}
-                      label={`${g.name}: ${Math.round((g.savedAmount / g.targetAmount) * 100)}%`}
-                    />
-                  ))}
+                  {summary.goals
+                    .filter((g) => g.status === 'APPROVED')
+                    .map((g) => (
+                      <Chip
+                        key={g.id}
+                        label={`${g.name}: ${Math.round((g.savedAmount / g.targetAmount) * 100)}%`}
+                      />
+                    ))}
                 </Stack>
               </CardContent>
             </Card>

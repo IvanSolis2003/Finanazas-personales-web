@@ -20,7 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const startOfMonth = new Date(year, month - 1, 1);
   const startOfNextMonth = new Date(year, month, 1);
 
-  const [members, expenses] = await Promise.all([
+  const [members, expenses, contribs] = await Promise.all([
     prisma.groupMember.findMany({
       where: { groupId: id },
       include: { user: { select: { id: true, name: true } } },
@@ -36,10 +36,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         paidById: true,
       },
     }),
+    prisma.goalContribution.groupBy({
+      by: ['userId'],
+      where: { groupId: id, date: { gte: startOfMonth, lt: startOfNextMonth } },
+      _sum: { amount: true },
+    }),
   ]);
 
   const memberIds = members.map((m) => m.userId);
   const { total, byCategory } = attributeSpending(expenses, memberIds);
+  // Aportes a metas por miembro este mes (bajan su disponible).
+  const savingsByUser: Record<string, number> = Object.fromEntries(
+    contribs.map((c) => [c.userId, c._sum.amount ?? 0]),
+  );
 
   const breakdown = members.map((m) => {
     const isSelf = m.userId === auth.userId;
@@ -54,6 +63,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         incomeVisible: false,
         income: null,
         spent: 0,
+        savings: 0,
         byCategory: {} as Record<string, number>,
         over: false,
         remaining: null,
@@ -63,6 +73,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const canSeeIncome = m.salaryVisible || isSelf;
     const income = canSeeIncome ? m.monthlySalary : null;
     const spent = total[m.userId] ?? 0;
+    const savings = savingsByUser[m.userId] ?? 0; // aportes a metas este mes
+    const outflow = spent + savings; // lo que sale de su sueldo
     return {
       userId: m.userId,
       name: m.user.name,
@@ -71,9 +83,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       incomeVisible: canSeeIncome,
       income,
       spent,
+      savings,
       byCategory: byCategory[m.userId] ?? {},
-      over: income !== null ? spent > income : false,
-      remaining: income !== null ? income - spent : null,
+      over: income !== null ? outflow > income : false,
+      remaining: income !== null ? income - outflow : null,
     };
   });
 

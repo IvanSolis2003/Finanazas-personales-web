@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const startOfMonth = new Date(year, month - 1, 1);
   const startOfNextMonth = new Date(year, month, 1);
 
-  const [expenses, members, budgets, goals] = await Promise.all([
+  const [expenses, members, budgets, goals, savingsAgg] = await Promise.all([
     prisma.expense.findMany({
       where: { groupId: id, date: { gte: startOfMonth, lt: startOfNextMonth } },
     }),
@@ -28,16 +28,29 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }),
     prisma.budget.findMany({ where: { groupId: id, month, year } }),
     prisma.savingGoal.findMany({ where: { groupId: id } }),
+    prisma.goalContribution.aggregate({
+      where: { groupId: id, date: { gte: startOfMonth, lt: startOfNextMonth } },
+      _sum: { amount: true },
+    }),
   ]);
 
   const totalIncome = members.reduce((sum, m) => sum + m.monthlySalary, 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const available = totalIncome - totalExpenses;
+  const totalSavings = savingsAgg._sum.amount ?? 0; // aportes a metas este mes
+  const available = totalIncome - totalExpenses - totalSavings;
 
   const byCategory = expenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.category] = (acc[e.category] ?? 0) + e.amount;
     return acc;
   }, {});
 
-  return NextResponse.json({ totalIncome, totalExpenses, available, byCategory, budgets, goals });
+  return NextResponse.json({
+    totalIncome,
+    totalExpenses,
+    totalSavings,
+    available,
+    byCategory,
+    budgets,
+    goals,
+  });
 }
