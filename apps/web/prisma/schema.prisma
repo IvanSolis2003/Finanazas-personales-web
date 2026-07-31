@@ -73,6 +73,7 @@ model Expense {
   category     ExpenseCategory
   type         ExpenseType
   splitBetween String[]
+  splitShares  Json?           // monto por persona en gastos compartidos { userId: monto }
   recurringId  String?         // si viene de un gasto fijo (plantilla)
   proposalId   String?         // si viene de una propuesta aprobada
   date         DateTime        @default(now())

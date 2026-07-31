@@ -15,12 +15,14 @@ export interface ExpenseForBalance {
   amount: number;
   type: 'SHARED' | 'INDIVIDUAL';
   splitBetween: string[];
+  splitShares?: unknown; // { userId: monto } cuando hay reparto personalizado
   paidById: string;
 }
 
 /**
  * Calcula cuánto debe o se le debe a cada userId.
  * Positivo → le deben dinero. Negativo → debe dinero.
+ * Usa el monto por persona (splitShares) si existe; si no, reparto igualitario.
  */
 export function calculateBalance(expenses: ExpenseForBalance[]): BalanceMap {
   const balance: BalanceMap = {};
@@ -28,15 +30,22 @@ export function calculateBalance(expenses: ExpenseForBalance[]): BalanceMap {
   for (const expense of expenses) {
     if (expense.type !== 'SHARED' || expense.splitBetween.length === 0) continue;
 
-    const share = Math.round(expense.amount / expense.splitBetween.length);
+    // Monto que le corresponde a cada miembro.
+    const custom = expense.splitShares as Record<string, number> | null | undefined;
+    const shares: Record<string, number> =
+      custom && typeof custom === 'object' && Object.keys(custom).length > 0
+        ? custom
+        : Object.fromEntries(
+            expense.splitBetween.map((id) => [id, Math.round(expense.amount / expense.splitBetween.length)]),
+          );
 
-    for (const memberId of expense.splitBetween) {
+    for (const [memberId, share] of Object.entries(shares)) {
       if (!(memberId in balance)) balance[memberId] = 0;
       if (!(expense.paidById in balance)) balance[expense.paidById] = 0;
 
       if (memberId !== expense.paidById) {
-        balance[expense.paidById] += share;
-        balance[memberId] -= share;
+        balance[expense.paidById] += Number(share) || 0;
+        balance[memberId] -= Number(share) || 0;
       }
     }
   }

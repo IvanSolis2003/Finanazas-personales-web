@@ -27,7 +27,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }),
     prisma.expense.findMany({
       where: { groupId: id, date: { gte: startOfMonth, lt: startOfNextMonth } },
-      select: { amount: true, category: true, type: true, splitBetween: true, paidById: true },
+      select: {
+        amount: true,
+        category: true,
+        type: true,
+        splitBetween: true,
+        splitShares: true,
+        paidById: true,
+      },
     }),
   ]);
 

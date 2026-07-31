@@ -40,6 +40,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         date: true,
         type: true,
         splitBetween: true,
+        splitShares: true,
         paidById: true,
       },
     }),
@@ -53,6 +54,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const contribution = (e: (typeof expenses)[number]): number => {
     if (!userId) return e.amount;
     if (e.type === 'INDIVIDUAL') return e.paidById === userId ? e.amount : 0;
+    const shares = e.splitShares as Record<string, number> | null | undefined;
+    if (shares && typeof shares === 'object' && Object.keys(shares).length > 0) {
+      return Number(shares[userId] ?? 0) || 0;
+    }
     if (e.splitBetween.includes(userId)) return Math.round(e.amount / (e.splitBetween.length || 1));
     return 0;
   };

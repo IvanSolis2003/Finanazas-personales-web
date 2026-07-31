@@ -9,6 +9,7 @@ export interface ExpenseForAttribution {
   category: string;
   type: 'SHARED' | 'INDIVIDUAL';
   splitBetween: string[];
+  splitShares?: unknown; // { userId: monto } cuando hay reparto personalizado
   paidById: string;
 }
 
@@ -41,9 +42,14 @@ export function attributeSpending(
     if (e.type === 'INDIVIDUAL') {
       add(e.paidById, e.category, e.amount);
     } else {
-      const parts = e.splitBetween.length || 1;
-      const share = Math.round(e.amount / parts);
-      for (const id of e.splitBetween) add(id, e.category, share);
+      const shares = e.splitShares as Record<string, number> | null | undefined;
+      if (shares && typeof shares === 'object' && Object.keys(shares).length > 0) {
+        for (const [id, amt] of Object.entries(shares)) add(id, e.category, Number(amt) || 0);
+      } else {
+        const parts = e.splitBetween.length || 1;
+        const share = Math.round(e.amount / parts);
+        for (const id of e.splitBetween) add(id, e.category, share);
+      }
     }
   }
 

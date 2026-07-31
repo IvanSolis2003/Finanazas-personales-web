@@ -19,7 +19,6 @@ import {
   MenuItem,
   ToggleButtonGroup,
   ToggleButton,
-  FormGroup,
   FormControlLabel,
   Checkbox,
   Alert,
@@ -186,12 +185,42 @@ function ExpenseDialog({
   const [split, setSplit] = useState<string[]>(
     expense && expense.type === 'SHARED' ? expense.splitBetween : members.map((m) => m.userId),
   );
+  // Monto por persona (strings para el input). Vacío = reparto igualitario.
+  const [shares, setShares] = useState<Record<string, string>>(() => {
+    const s: Record<string, string> = {};
+    if (expense?.splitShares) {
+      for (const [id, amt] of Object.entries(expense.splitShares)) s[id] = String(amt);
+    }
+    return s;
+  });
 
   function toggle(userId: string) {
     setSplit((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
     );
+    setShares((prev) => {
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
   }
+
+  function splitEqually() {
+    const total = Number(amount);
+    const n = split.length;
+    if (!total || !n) return;
+    const base = Math.floor(total / n);
+    const rem = total - base * n;
+    const next: Record<string, string> = {};
+    split.forEach((id, i) => {
+      next[id] = String(base + (i === 0 ? rem : 0));
+    });
+    setShares(next);
+  }
+
+  const anyShareEntered = split.some((id) => (shares[id] ?? '').trim() !== '');
+  const sharesSum = split.reduce((sum, id) => sum + (Number(shares[id]) || 0), 0);
+  const sharesMismatch = type === 'SHARED' && anyShareEntered && sharesSum !== Number(amount);
 
   function submit() {
     const data = {
@@ -200,6 +229,10 @@ function ExpenseDialog({
       category,
       type,
       splitBetween: type === 'SHARED' ? split : [],
+      splitShares:
+        type === 'SHARED' && anyShareEntered
+          ? Object.fromEntries(split.map((id) => [id, Number(shares[id]) || 0]))
+          : undefined,
       // Mediodía UTC: cae siempre dentro del día elegido sin importar la zona
       // horaria del servidor (evita que un gasto "salte" de mes por el huso).
       date: date ? `${date}T12:00:00.000Z` : undefined,
@@ -279,20 +312,57 @@ function ExpenseDialog({
 
           {type === 'SHARED' && (
             <Box>
-              <Typography variant="caption" color="text.secondary">
-                Dividir entre:
-              </Typography>
-              <FormGroup>
-                {members.map((m) => (
-                  <FormControlLabel
-                    key={m.userId}
-                    control={
-                      <Checkbox checked={split.includes(m.userId)} onChange={() => toggle(m.userId)} />
-                    }
-                    label={m.name}
-                  />
-                ))}
-              </FormGroup>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="caption" color="text.secondary">
+                  Cuánto pone cada uno (opcional):
+                </Typography>
+                <Button size="small" onClick={splitEqually} disabled={!amount || split.length === 0}>
+                  Partes iguales
+                </Button>
+              </Box>
+              <Stack spacing={0.5} mt={0.5}>
+                {members.map((m) => {
+                  const checked = split.includes(m.userId);
+                  return (
+                    <Box key={m.userId} display="flex" alignItems="center" gap={1}>
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => toggle(m.userId)}
+                        size="small"
+                        sx={{ p: 0.5 }}
+                      />
+                      <Typography sx={{ flexGrow: 1 }}>{m.name}</Typography>
+                      <TextField
+                        size="small"
+                        type="number"
+                        placeholder="Igual"
+                        value={shares[m.userId] ?? ''}
+                        onChange={(e) =>
+                          setShares((s) => ({ ...s, [m.userId]: e.target.value }))
+                        }
+                        disabled={!checked}
+                        sx={{ width: 110 }}
+                      />
+                    </Box>
+                  );
+                })}
+              </Stack>
+              {anyShareEntered && (
+                <Typography
+                  variant="caption"
+                  color={sharesMismatch ? 'error.main' : 'success.main'}
+                  display="block"
+                  mt={0.5}
+                >
+                  Suma {formatCurrency(sharesSum)} / {formatCurrency(Number(amount) || 0)}
+                  {sharesMismatch ? ' — debe sumar el total' : ' ✓'}
+                </Typography>
+              )}
+              {!anyShareEntered && (
+                <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+                  Si lo dejas vacío, se reparte en partes iguales.
+                </Typography>
+              )}
             </Box>
           )}
 
@@ -314,7 +384,7 @@ function ExpenseDialog({
         <Button
           variant="contained"
           onClick={submit}
-          disabled={mutation.isPending || !description.trim() || !amount}
+          disabled={mutation.isPending || !description.trim() || !amount || sharesMismatch}
         >
           {isEdit ? 'Guardar cambios' : 'Guardar'}
         </Button>

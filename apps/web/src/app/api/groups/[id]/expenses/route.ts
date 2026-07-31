@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireUser, requireMembership } from '@/lib/apiAuth';
 import { expenseSchema } from '@/lib/validations';
-import type { Prisma } from '@prisma/client';
+import { validateSplit } from '@/lib/expenseSplit';
+import { Prisma } from '@prisma/client';
 
 // GET /api/groups/[id]/expenses?month=&year=&category=
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +51,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { description, amount, category, type, splitBetween, date } = parsed.data;
+  const { description, amount, category, type, splitBetween, splitShares, date } = parsed.data;
+
+  const split = validateSplit(type, amount, splitBetween, splitShares);
+  if (!split.ok) return NextResponse.json({ error: split.error }, { status: 400 });
 
   const expense = await prisma.expense.create({
     data: {
@@ -60,7 +64,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       amount,
       category,
       type,
-      splitBetween: type === 'SHARED' ? splitBetween ?? [] : [],
+      splitBetween: split.splitBetween,
+      splitShares: split.splitShares ?? Prisma.JsonNull,
       date: date ? new Date(date) : new Date(),
     },
     include: { paidBy: { select: { id: true, name: true } } },

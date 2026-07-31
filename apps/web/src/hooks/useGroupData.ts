@@ -19,6 +19,7 @@ export interface Expense {
   category: string;
   type: 'SHARED' | 'INDIVIDUAL';
   splitBetween: string[];
+  splitShares: Record<string, number> | null;
   recurringId: string | null;
   date: string;
   paidBy: { id: string; name: string };
@@ -30,6 +31,7 @@ export interface NewExpense {
   category: string;
   type: 'SHARED' | 'INDIVIDUAL';
   splitBetween?: string[];
+  splitShares?: Record<string, number>;
   date?: string;
 }
 

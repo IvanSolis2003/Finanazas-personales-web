@@ -42,6 +42,8 @@ export const expenseSchema = z.object({
   category: categoryEnum,
   type: z.enum(['SHARED', 'INDIVIDUAL']),
   splitBetween: z.array(z.string()).optional(),
+  // Monto por persona en gastos compartidos: { userId: monto }.
+  splitShares: z.record(z.string(), z.number().int().nonnegative()).optional(),
   date: z.string().optional(),
 });
 
