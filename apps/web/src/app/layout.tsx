@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
@@ -17,6 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         <Providers>{children}</Providers>
+        <Script
+          src="https://iasm-pulse.vercel.app/track.js"
+          data-site="finanzas.iasmtech.com"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
